@@ -34,16 +34,9 @@ const visitorSchema = new mongoose.Schema({
         required: [true, 'District is required'],
         trim: true
     },
-
-    taluka: {
-        type: String,
-        required: [true, 'Taluka is required'],
-        trim: true
-    },
-
     policeStation: {
         type: String,
-        required: [true, 'Police station is required'],
+        // required: [true, 'Police station is required'],
         trim: true
     },
 
@@ -55,7 +48,7 @@ const visitorSchema = new mongoose.Schema({
 
     reasonToVisit: {
         type: String,
-        required: [true, 'Reason for visit is required'],
+        // required: [true, 'Reason for visit is required'],
     },
 
     feedback: {
@@ -86,6 +79,10 @@ const visitorSchema = new mongoose.Schema({
         default: false
     },
      visitorPhoto: {
+        type: String,                    // Cloudinary / AWS S3 / Local path URL store होगी
+        default: null
+    },
+      spOfficeBranch: {
         type: String,                    // Cloudinary / AWS S3 / Local path URL store होगी
         default: null
     }

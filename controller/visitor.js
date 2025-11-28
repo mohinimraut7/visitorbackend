@@ -11,10 +11,10 @@ exports.addVisitor = async (req, res) => {
             fullAddress,
             pincode,
             district,
-            taluka,
             policeStation,
             contactPerson,
             reasonToVisit,
+            spOfficeBranch,
             feedback,
             nextAppointmentDate,
             feedbackGiven
@@ -30,18 +30,18 @@ exports.addVisitor = async (req, res) => {
             fullAddress: (fullAddress || '').trim(),
             pincode: (pincode || '').trim(),
             district: (district || '').trim(),
-            taluka: (taluka || '').trim(),
             policeStation: (policeStation || '').trim(),
             contactPerson: contactPerson?.trim() || null,
             reasonToVisit: (reasonToVisit || '').trim(),
+            spOfficeBranch: (spOfficeBranch || '').trim(),
             feedback: feedback?.trim() || null,
             feedbackGiven: feedbackGiven === true || feedbackGiven === 'true' || feedbackGiven === '1'
         };
 
         // Required fields check
         if (!trimmed.fullName || !trimmed.mobileNumber || !trimmed.fullAddress || 
-            !trimmed.pincode || !trimmed.district || !trimmed.taluka || 
-            !trimmed.policeStation || !trimmed.reasonToVisit) {
+            !trimmed.pincode || !trimmed.district ||
+            !trimmed.policeStation || !trimmed.reasonToVisit ) {
             return res.status(400).json({
                 success: false,
                 message: "All required fields must be filled."
@@ -74,10 +74,10 @@ exports.addVisitor = async (req, res) => {
             fullAddress: trimmed.fullAddress,
             pincode: trimmed.pincode,
             district: trimmed.district,
-            taluka: trimmed.taluka,
             policeStation: trimmed.policeStation,
             contactPerson: trimmed.contactPerson,
             reasonToVisit: trimmed.reasonToVisit,
+            spOfficeBranch: trimmed.spOfficeBranch,
             feedback: trimmed.feedback,
             nextAppointmentDate: finalAppointmentDate,
             feedbackGiven: trimmed.feedbackGiven
