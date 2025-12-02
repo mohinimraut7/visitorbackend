@@ -416,6 +416,122 @@ const Counter = require('../models/counter'); // ← ye file bana dena (niche di
 // =======================================
 // ADD NEW VISIT - 100% SYNTAX CORRECT & WORKING
 // =======================================
+// exports.addVisitor = async (req, res) => {
+//     try {
+//         const {
+//             fullName,
+//             mobileNumber,
+//             fullAddress,
+//             pincode,
+//             district = "ठाणे",
+//             policeStation,
+//             spOfficeBranch,
+//             contactPerson,
+//             reasonToVisit,
+//             numberOfVisitors = "1",
+//             nextAppointmentDate
+//         } = req.body;
+
+//         const visitorPhoto = req.files?.visitorPhoto?.[0]?.path;
+//         const uploadedDocs = req.files?.uploadDocument || [];
+
+//         if (!fullName?.trim() || !mobileNumber?.trim() || !fullAddress?.trim() || !pincode?.trim()) {
+//             return res.status(400).json({ success: false, message: "सर्व मुख्य फील्ड भरा" });
+//         }
+//         if (!/^[6-9]\d{9}$/.test(mobileNumber.trim())) {
+//             return res.status(400).json({ success: false, message: "अवैध मोबाईल नंबर" });
+//         }
+//         if (!visitorPhoto) {
+//             return res.status(400).json({ success: false, message: "अभ्यागताचा फोटो आवश्यक आहे का?" });
+//         }
+
+//         const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+//         const lastVisitToday = await Visitor.findOne({
+//             "visits.entryAt": {
+//                 $gte: new Date().setHours(0, 0, 0, 0),
+//                 $lt: new Date().setHours(23, 59, 59, 999)
+//             }
+//         }).sort({ "visits.entryAt": -1 });
+
+//         let nextSerial = 1;
+//         if (lastVisitToday?.visits?.length > 0) {
+//             const lastId = lastVisitToday.visits[lastVisitToday.visits.length - 1].applicationId || "";
+//             if (lastId.startsWith(today)) {
+//                 nextSerial = parseInt(lastId.slice(8)) + 1;
+//             }
+//         }
+//         const applicationId = today + String(nextSerial).padStart(4, '0');
+
+//         const existingVisitor = await Visitor.findOne({ mobileNumber: mobileNumber.trim() });
+//         const visitNumber = existingVisitor ? existingVisitor.visits.length + 1 : 1;
+
+//         const newVisit = {
+//             applicationId,
+//             visitNumber,
+//             contactPerson: contactPerson?.trim() || null,
+//             reasonToVisit: reasonToVisit?.trim() || null,
+//             numberOfVisitors: numberOfVisitors.trim() || "1",
+//             visitorPhoto,
+//             entryAt: new Date(),
+//             feedbackGiven: false
+//         };
+
+//         if (nextAppointmentDate) {
+//             const appt = new Date(nextAppointmentDate);
+//             if (isNaN(appt.getTime()) || appt <= new Date()) {
+//                 return res.status(400).json({ success: false, message: "पुढची तारीख भविष्यात असावी" });
+//             }
+//             newVisit.nextAppointmentDate = appt;
+//         }
+
+//         if (uploadedDocs.length > 0) {
+//             newVisit.uploadDocument = uploadedDocs.map(file => ({
+//                 url: file.path,
+//                 fileType: file.mimetype
+//             }));
+//         }
+
+//         let visitor;
+//         if (existingVisitor) {
+//             existingVisitor.visits.push(newVisit);
+//             visitor = await existingVisitor.save();
+//         } else {
+//             visitor = await Visitor.create({
+//                 fullName: fullName.trim(),
+//                 mobileNumber: mobileNumber.trim(),
+//                 fullAddress: fullAddress.trim(),
+//                 pincode: pincode.trim(),
+//                 district: district.trim(),
+//                 policeStation: policeStation?.trim() || null,
+//                 spOfficeBranch: spOfficeBranch?.trim() || null,
+//                 visits: [newVisit]
+//             });
+//         }
+
+//         const latestVisit = visitor.visits[visitor.visits.length - 1];
+
+//         res.status(201).json({
+//             success: true,
+//             message: existingVisitor ? "नवीन भेट नोंदवली!" : "अभ्यागत नोंदणी यशस्वी!",
+//             applicationId: latestVisit.applicationId,
+//             visitNumber: latestVisit.visitNumber,
+//             visitor
+//         });
+
+//     } catch (error) {
+//         console.error('Add visitor error:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Server error",
+//             error: error.message
+//         });
+//     }
+// };
+
+// --------------------------------------
+// 1 Dec 25
+// --------------------------------
 exports.addVisitor = async (req, res) => {
     try {
         const {
@@ -435,6 +551,7 @@ exports.addVisitor = async (req, res) => {
         const visitorPhoto = req.files?.visitorPhoto?.[0]?.path;
         const uploadedDocs = req.files?.uploadDocument || [];
 
+        // ====== Existing Validations (काहीही बदलले नाही) ======
         if (!fullName?.trim() || !mobileNumber?.trim() || !fullAddress?.trim() || !pincode?.trim()) {
             return res.status(400).json({ success: false, message: "सर्व मुख्य फील्ड भरा" });
         }
@@ -445,6 +562,25 @@ exports.addVisitor = async (req, res) => {
             return res.status(400).json({ success: false, message: "अभ्यागताचा फोटो आवश्यक आहे का?" });
         }
 
+        // ====== नवीन Rule: मागच्या visit चा feedback compulsory ======
+        const existingVisitor = await Visitor.findOne({ mobileNumber: mobileNumber.trim() });
+
+        if (existingVisitor && existingVisitor.visits.length > 0) {
+            const lastVisit = existingVisitor.visits[existingVisitor.visits.length - 1];
+
+            // feedback दिलेला नसेल किंवा रिकामा असेल तर ब्लॉक करा
+            if (!lastVisit.feedback || lastVisit.feedback.trim() === "" || lastVisit.feedbackGiven === false) {
+                return res.status(400).json({
+                    success: false,
+                    message: `कृपया आधीच्या भेटीचा (Visit No. ${lastVisit.visitNumber}) अभिप्राय द्या. नवीन भेट नोंदवता येणार नाही.`,
+                    pendingVisitNumber: lastVisit.visitNumber,
+                    pendingApplicationId: lastVisit.applicationId
+                });
+            }
+        }
+        // ============================================================
+
+        // ====== Application ID Generate (आधीचाच लॉजिक) ======
         const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
         const lastVisitToday = await Visitor.findOne({
@@ -463,9 +599,10 @@ exports.addVisitor = async (req, res) => {
         }
         const applicationId = today + String(nextSerial).padStart(4, '0');
 
-        const existingVisitor = await Visitor.findOne({ mobileNumber: mobileNumber.trim() });
+        // ====== Visit Number Calculate ======
         const visitNumber = existingVisitor ? existingVisitor.visits.length + 1 : 1;
 
+        // ====== New Visit Object ======
         const newVisit = {
             applicationId,
             visitNumber,
@@ -477,6 +614,7 @@ exports.addVisitor = async (req, res) => {
             feedbackGiven: false
         };
 
+        // ====== Next Appointment Date Validation ======
         if (nextAppointmentDate) {
             const appt = new Date(nextAppointmentDate);
             if (isNaN(appt.getTime()) || appt <= new Date()) {
@@ -485,6 +623,7 @@ exports.addVisitor = async (req, res) => {
             newVisit.nextAppointmentDate = appt;
         }
 
+        // ====== Uploaded Documents ======
         if (uploadedDocs.length > 0) {
             newVisit.uploadDocument = uploadedDocs.map(file => ({
                 url: file.path,
@@ -492,6 +631,7 @@ exports.addVisitor = async (req, res) => {
             }));
         }
 
+        // ====== Save Visitor (नवीन किंवा existing) ======
         let visitor;
         if (existingVisitor) {
             existingVisitor.visits.push(newVisit);
@@ -533,8 +673,6 @@ exports.addVisitor = async (req, res) => {
 
 
 
-
-
 // =======================================
 // 2. GET VISITOR BY MOBILE (All visits history)
 // =======================================
@@ -561,6 +699,7 @@ exports.getVisitorByMobileNumber = async (req, res) => {
         });
 
     } catch (error) {
+        
         console.error(error);
         res.status(500).json({ success: false, message: "Server error" });
     }
@@ -654,5 +793,47 @@ exports.getAllVisitors = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+
+// visitorController.js
+
+exports.getVisitorById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // MongoDB ObjectId valid आहे का ते चेक करा (extra safety)
+        if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid visitor ID required"
+            });
+        }
+
+        const visitor = await Visitor.findById(id)
+            .select('-__v')  // __v field लपवा
+            .lean();         // performance साठी lean() उत्तम
+
+        if (!visitor) {
+            return res.status(404).json({
+                success: false,
+                message: "Visitor not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Visitor found",
+            data: visitor
+        });
+
+    } catch (error) {
+        console.error("Get visitor by ID error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
     }
 };

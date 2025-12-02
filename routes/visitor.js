@@ -5,7 +5,7 @@ const visitorPhotoUpload = require('../middleware/visitorPhotoUpload'); // ← �
 
 
 
-const { getVisitorByMobileNumber,editVisitor,getAllVisitors } = require('../controller/visitor');
+const { getVisitorByMobileNumber,editVisitor,getAllVisitors,getVisitorById } = require('../controller/visitor');
 
 
 
@@ -18,6 +18,9 @@ router.put('/visitor/:mobileNumber/feedback', editVisitor);
 
 
 router.get('/allVisitors', getAllVisitors);
+
+router.get('/visitor/:id',getVisitorById)
+
 // या चाहो तो
 // router.get('/visitors', getAllVisitors);
 
