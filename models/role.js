@@ -7,19 +7,23 @@ const roleSchema=new mongoose.Schema({
       },
     name:{
         type:String,
-       
     },
-   
     
     email:{
         type:String,
         required:true 
     },
    
-   
     ward:{
         type:String,
       
-    }
+    },
+   officeType: {
+        type: String,
+        enum: ["Head Office", "Sub Office"],
+    }, 
+    officeName: {
+        type: String,
+    }, 
 })
 module.exports=mongoose.model('Role',roleSchema)

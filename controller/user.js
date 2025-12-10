@@ -17,75 +17,148 @@ const nodemailer = require('nodemailer');
 env.config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// exports.addUser = async (req, res) => {
+  
+//   const {cn,username, email, password, contactNumber, address,signature,role,ward } = req.body;
+ 
+//   try {
+//     if (!/^\d{10}$/.test(contactNumber.toString())) {
+//       return res.status(400).json({ message: "Contact number must be a 10-digit number" });
+//     }
+//     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+//     if (!emailRegex.test(email)) {
+//       return res.status(400).json({ message: "Invalid email address" });
+//     }
+
+//     const existingUser = await User.findOne({
+//       $or: [{ email }, { contactNumber }],
+//     });
+
+//     if (existingUser) {
+//       return res.status(400).json({ message: "User with the same email or contact number already exists" });
+//     }
+
+//     // const finalRole = email === "mohinimraut7@gmail.com" ? "Super Admin" : role;
+
+
+//     const salt = await bcrypt.genSalt(10);
+//     const hashedPassword = await bcrypt.hash(password, salt);
+//     const newUser = new User({
+//       cn,
+//       username,
+//       email,
+//       password: hashedPassword,
+//       contactNumber,
+//       address,
+//       signature,
+//       role,
+//       ward
+//     });
+//     const savedUser = await newUser.save();
+//     const verificationToken = crypto.randomBytes(32).toString('hex'); 
+//     newUser.verificationToken = verificationToken;
+// await newUser.save();
+
+
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: "mohinimraut7@gmail.com",
+//     pass: "enpz swmp tycr ryhh",
+
+//   },
+// });
+
+// const verificationLink = `${process.env.BASEURLEMAIL}/api/verify-email/${verificationToken}`;
+
+// await transporter.sendMail({
+//   from: process.env.EMAIL,
+//   to: newUser.email,
+//   subject: 'Email Verification',
+//   html: `<p>Click <a href="${verificationLink}">here</a> to verify your email address.</p>`,
+// });
+
+   
+//     res.status(201).json({ message: "User added successfully. Check your email to verify your account." });
+
+//   } catch (error) {
+//     res.status(400).json({ message: "Error adding user", error });
+//   }
+// };
+
+
 exports.addUser = async (req, res) => {
   
-  const {cn,username, email, password, contactNumber, address,signature,role,ward } = req.body;
+  const { 
+    username, 
+    email, 
+    password, 
+    contactNumber, 
+    address, 
+    role, 
+    ward,
+    officeName,     // optional - येऊ शकते किंवा नाही पण येणार
+    officeType      // optional - येऊ शकते किंवा नाही पण येणार
+  } = req.body;
  
   try {
-    if (!/^\d{10}$/.test(contactNumber.toString())) {
-      return res.status(400).json({ message: "Contact number must be a 10-digit number" });
-    }
+    // Email validation (required)
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email address" });
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({ message: "Valid email address is required" });
     }
 
+    // Duplicate check
     const existingUser = await User.findOne({
-      $or: [{ email }, { contactNumber }],
+      $or: [{ email }, { contactNumber }]
     });
 
     if (existingUser) {
-      return res.status(400).json({ message: "User with the same email or contact number already exists" });
+      return res.status(400).json({ 
+        message: "User with the same email or contact number already exists" 
+      });
     }
 
-    // const finalRole = email === "mohinimraut7@gmail.com" ? "Super Admin" : role;
-
-
+    // Password hashing
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Create new user - officeName & officeType फक्त येत असतील तरच save होतील
     const newUser = new User({
-      cn,
       username,
       email,
       password: hashedPassword,
       contactNumber,
       address,
-      signature,
       role,
-      ward
+      ward,
+      ...(officeName && { officeName }),    // फक्त येत असेल तरच add होईल
+      ...(officeType && { officeType })     // फक्त येत असेल तरच add होईल
+      // नंतर officeRef साठी वेगळा API किंवा logic लावता येईल
     });
-    const savedUser = await newUser.save();
-    const verificationToken = crypto.randomBytes(32).toString('hex'); 
-    newUser.verificationToken = verificationToken;
-await newUser.save();
+    
+    await newUser.save();
 
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: "mohinimraut7@gmail.com",
-    pass: "enpz swmp tycr ryhh",
-
-  },
-});
-
-const verificationLink = `${process.env.BASEURLEMAIL}/api/verify-email/${verificationToken}`;
-
-await transporter.sendMail({
-  from: process.env.EMAIL,
-  to: newUser.email,
-  subject: 'Email Verification',
-  html: `<p>Click <a href="${verificationLink}">here</a> to verify your email address.</p>`,
-});
-
-   
-    res.status(201).json({ message: "User added successfully. Check your email to verify your account." });
+    res.status(201).json({ 
+      message: "User added successfully.",
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        officeName: newUser.officeName || null,
+        officeType: newUser.officeType || null
+      }
+    });
 
   } catch (error) {
-    res.status(400).json({ message: "Error adding user", error });
+    console.error("Error adding user:", error);
+    res.status(500).json({ 
+      message: "Error adding user", 
+      error: error.message 
+    });
   }
 };
-
 
 
 exports.verifyEmail = async (req, res) => {
@@ -178,7 +251,7 @@ exports.deleteUser = async (req, res) => {
     
     await Role.deleteOne({ _id: deletedUser.roleId });
 
-    
+      
     res.status(200).json({
       message: "User, associated role, and bills deleted successfully",
       user: deletedUser,
@@ -218,9 +291,9 @@ const reqward=req?.user?.ward;
       user.password = await bcrypt.hash(password, salt);
     }
     if (contactNumber) {
-      if (!/^\d{10}$/.test(contactNumber.toString())) {
-        return res.status(400).json({ message: "Contact number must be a 10-digit number" });
-      }
+      // if (!/^\d{10}$/.test(contactNumber.toString())) {
+      //   return res.status(400).json({ message: "Contact number must be a 10-digit number" });
+      // }
       user.contactNumber = contactNumber;
     }
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -289,12 +362,12 @@ exports.login = async (req, res) => {
     }
 
    
-    if (!user.isVerified) {
-      return res.status(403).json({
-        message: "Email is not verified. Please verify your email to login.",
-        resendOption: true
-      });
-    }
+    // if (!user.isVerified) {
+    //   return res.status(403).json({
+    //     message: "Email is not verified. Please verify your email to login.",
+    //     resendOption: true
+    //   });
+    // }
 
     // if (email === "mohinimraut7@gmail.com" && user.role !== "Super Admin") {
     //   user.role = "Super Admin";
@@ -305,11 +378,11 @@ exports.login = async (req, res) => {
       JWT_SECRET,
       { expiresIn: '30d' }
     );
-    const { _id,cn,username, email: userEmail, contactNumber, address, ward, role, city, country, postalCode, section, description,signature } = user;
+    const { _id,cn,username, email: userEmail, contactNumber, address, ward, role,officeName,officeType } = user;
     res.status(200).json({
       message: "Login successful",
       token,
-      user: { _id,cn,username, email: userEmail, contactNumber, address, ward, role, city, country, postalCode, section, description,signature}
+      user: { _id,cn,username, email: userEmail, contactNumber, address, ward, role,officeName,officeType}
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });

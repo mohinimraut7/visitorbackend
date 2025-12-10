@@ -172,7 +172,40 @@ const visitorSchema = new mongoose.Schema({
     spOfficeBranch: { type: String, default: null },
 
     // Yeh array mein har visit ka full record jayega
-    visits: [visitSubSchema]
+
+
+     // तुम्ही मागितलेले नवीन fields (optional)
+    addedByUserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',                 // जर User model असेल तर
+        default: null
+    },
+    addedByRole: {
+        type: String,
+        trim: true,
+        default: null
+    },
+    officeName: {
+        type: String,
+        trim: true,
+        default: null
+    },
+    officeType: {
+        type: String,
+        trim: true,
+        default: null
+    },
+    addedByEmail: {
+        type: String,
+        trim: true,
+        default: null
+    },
+
+    visits: [visitSubSchema],
+     rolename: {
+        type: String,
+        default: "Visitor"
+    },
 
 }, { timestamps: true });
 

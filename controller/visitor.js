@@ -533,6 +533,7 @@ const Counter = require('../models/counter'); // ← ye file bana dena (niche di
 // 1 Dec 25
 // --------------------------------
 exports.addVisitor = async (req, res) => {
+    console.log("req.body>>>>>>>>>",req.body)
     try {
         const {
             fullName,
@@ -545,7 +546,12 @@ exports.addVisitor = async (req, res) => {
             contactPerson,
             reasonToVisit,
             numberOfVisitors = "1",
-            nextAppointmentDate
+            nextAppointmentDate,
+             addedByUserId,
+            addedByRole,
+            officeName,
+            officeType,
+            addedByEmail
         } = req.body;
 
         const visitorPhoto = req.files?.visitorPhoto?.[0]?.path;
@@ -645,6 +651,12 @@ exports.addVisitor = async (req, res) => {
                 district: district.trim(),
                 policeStation: policeStation?.trim() || null,
                 spOfficeBranch: spOfficeBranch?.trim() || null,
+                  // नवीन fields फक्त येथे add होतात (पहिल्यावेळी)
+                addedByUserId: addedByUserId || null,
+                addedByRole: addedByRole || null,
+                officeName: officeName || null,
+                officeType: officeType || null,
+                addedByEmail: addedByEmail ? addedByEmail.trim() : null,
                 visits: [newVisit]
             });
         }
@@ -708,45 +720,137 @@ exports.getVisitorByMobileNumber = async (req, res) => {
 // =======================================
 // 3. UPDATE FEEDBACK (Latest visit only)
 // =======================================
+
+
+// exports.editVisitor = async (req, res) => {
+//     try {
+//         const { mobileNumber } = req.params;
+//         const { feedback, nextAppointmentDate } = req.body;
+
+//         if (!mobileNumber || !/^[6-9]\d{9}$/.test(mobileNumber)) {
+//             return res.status(400).json({ success: false, message: "Valid mobile required" });
+//         }
+
+//         const visitor = await Visitor.findOne({ mobileNumber });
+//         if (!visitor || visitor.visits.length === 0) {
+//             return res.status(404).json({ success: false, message: "No visit found" });
+//         }
+
+//         const latestVisit = visitor.visits[visitor.visits.length - 1];
+
+//         latestVisit.feedback = feedback?.trim() || null;
+//         latestVisit.feedbackGiven = true;
+//         latestVisit.feedbackSubmittedAt = new Date();
+
+//         if (nextAppointmentDate) {
+//             const date = new Date(nextAppointmentDate);
+//             if (isNaN(date.getTime()) || date <= new Date()) {
+//                 return res.status(400).json({ success: false, message: "Invalid future date" });
+//             }
+//             latestVisit.nextAppointmentDate = date;
+//         }
+
+//         await visitor.save();
+
+//         res.status(200).json({
+//             success: true,
+//             message: "Feedback submitted successfully!",
+//             latestVisit
+//         });
+
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ success: false, message: "Server error" });
+//     }
+// };
+
+
 exports.editVisitor = async (req, res) => {
     try {
         const { mobileNumber } = req.params;
-        const { feedback, nextAppointmentDate } = req.body;
+        const updateData = req.body;
 
-        if (!mobileNumber || !/^[6-9]\d{9}$/.test(mobileNumber)) {
-            return res.status(400).json({ success: false, message: "Valid mobile required" });
-        }
+        // // Mobile number validation
+        // if (!mobileNumber || !/^[6-9]\d{9}$/.test(mobileNumber)) {
+        //     return res.status(400).json({ success: false, message: "Valid mobile number required" });
+        // }
 
         const visitor = await Visitor.findOne({ mobileNumber });
-        if (!visitor || visitor.visits.length === 0) {
-            return res.status(404).json({ success: false, message: "No visit found" });
+        if (!visitor) {
+            return res.status(404).json({ success: false, message: "Visitor not found" });
+        }
+
+        // नवीन files (जर edit करताना नवीन photo किंवा documents upload केले तर)
+        const newVisitorPhoto = req.files?.visitorPhoto?.[0]?.path;
+        const newUploadedDocs = req.files?.uploadDocument || [];
+
+        // ====== Main Visitor Details Update (जर frontend ने पाठवले तर) ======
+        if (updateData.fullName) visitor.fullName = updateData.fullName.trim();
+        if (updateData.fullAddress) visitor.fullAddress = updateData.fullAddress.trim();
+        if (updateData.pincode) visitor.pincode = updateData.pincode.trim();
+        if (updateData.district) visitor.district = updateData.district.trim();
+        if (updateData.policeStation) visitor.policeStation = updateData.policeStation.trim() || null;
+        if (updateData.spOfficeBranch) visitor.spOfficeBranch = updateData.spOfficeBranch.trim() || null;
+
+        // ====== addedBy* fields update करायला allow करतो (जर दुसरा officer edit करत असेल) ======
+        if (updateData.addedByUserId) visitor.addedByUserId = updateData.addedByUserId;
+        if (updateData.addedByRole) visitor.addedByRole = updateData.addedByRole?.trim() || null;
+        if (updateData.officeName) visitor.officeName = updateData.officeName?.trim() || null;
+        if (updateData.officeType) visitor.officeType = updateData.officeType?.trim() || null;
+        if (updateData.addedByEmail) visitor.addedByEmail = updateData.addedByEmail?.trim() || null;
+
+        // ====== Latest Visit चा Feedback & Next Appointment Update ======
+        if (visitor.visits.length === 0) {
+            return res.status(400).json({ success: false, message: "No visit history found" });
         }
 
         const latestVisit = visitor.visits[visitor.visits.length - 1];
 
-        latestVisit.feedback = feedback?.trim() || null;
-        latestVisit.feedbackGiven = true;
-        latestVisit.feedbackSubmittedAt = new Date();
+        // Feedback submit करत असतील तर
+        if (updateData.feedback !== undefined) {
+            latestVisit.feedback = updateData.feedback?.trim() || null;
+            latestVisit.feedbackGiven = !!updateData.feedback?.trim();
+            latestVisit.feedbackSubmittedAt = new Date();
+        }
 
-        if (nextAppointmentDate) {
-            const date = new Date(nextAppointmentDate);
+        // Next appointment date update
+        if (updateData.nextAppointmentDate) {
+            const date = new Date(updateData.nextAppointmentDate);
             if (isNaN(date.getTime()) || date <= new Date()) {
-                return res.status(400).json({ success: false, message: "Invalid future date" });
+                return res.status(400).json({ success: false, message: "पुढची तारीख भविष्यात असावी" });
             }
             latestVisit.nextAppointmentDate = date;
+        } else if (updateData.nextAppointmentDate === null) {
+            latestVisit.nextAppointmentDate = null;
+        }
+
+        // नवीन photo आला तर latest visit साठी
+        if (newVisitorPhoto) {
+            latestVisit.visitorPhoto = newVisitorPhoto;
+        }
+
+        // नवीन documents आले तर add करा
+        if (newUploadedDocs.length > 0) {
+            const docsToAdd = newUploadedDocs.map(file => ({
+                url: file.path,
+                fileType: file.mimetype,
+                uploadedAt: new Date()
+            }));
+            latestVisit.uploadDocument.push(...docsToAdd);
         }
 
         await visitor.save();
 
         res.status(200).json({
             success: true,
-            message: "Feedback submitted successfully!",
-            latestVisit
+            message: "Visitor & visit details updated successfully!",
+            visitor,
+            updatedVisit: latestVisit
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: "Server error" });
+        console.error("Edit visitor error:", error);
+        res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 };
 

@@ -17,6 +17,12 @@ const addConsumersRoutes=require('./routes/consumer');
 const addTarriffRoutes=require('./routes/tarriff');
 const addReportRoutes = require('./routes/report');
 const imageRoutes = require('./routes/imageRoute'); 
+
+const addOfficeRoutes = require("./routes/office");
+const addHeadofficeRoutes = require("./routes/headoffice");
+const addSubofficeRoutes = require("./routes/suboffice");
+
+
 app.use("/uploads", express.static("uploads"));
 const port = process.env.PORT || 5000;
 env.config();
@@ -40,6 +46,12 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   app.use('/api',addTarriffRoutes)
   app.use('/api',addReportRoutes)
   app.use('/api',imageRoutes)
+
+  
+  app.use('/api',addOfficeRoutes)
+  app.use('/api',addHeadofficeRoutes)
+  app.use('/api',addSubofficeRoutes)
+
 app.get('/',(req,res)=>{
 res.send("Hello world....")
 });

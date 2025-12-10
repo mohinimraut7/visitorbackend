@@ -5,138 +5,265 @@ const bcrypt = require('bcryptjs');
 
 
 
+// exports.addRole = async (req, res) => {
+//     const { name, email, ward,officeType,officeName } = req.body; 
+
+//     console.log("name, email, ward",name, email, ward,officeType,officeName )
+//     const requesterRole = req?.user?.role;
+
+//     if (requesterRole !== 'Super Admin' && requesterRole !== 'Admin' && requesterRole === 'Executive Engineer' &&
+//         (requesterRole === 'Junior Engineer' && requesterWard === 'Head Office')) {
+//         return res.status(403).json({ message: "You don't have authority to add user" });
+//     }
+
+//     try {
+
+//         if (name === "Admin") {
+//             const adminCount = await User.countDocuments({ role: "Admin" });
+//             if (adminCount >= 2) {
+//                 return res.status(400).json({ message: "A maximum of 2 Admins are allowed." });
+//             }
+//         }
+        
+
+// if (requesterRole !== 'Junior Engineer') {
+//     console.log("requesterRole", requesterRole);
+
+//     if (name === 'Lipik') {
+//         console.log("Inside Lipik");
+//         const existingLipikWard = await Role.findOne({ ward, name: 'Lipik' });
+//         if (existingLipikWard) {
+//             return res.status(400).json({ message: `A Lipik for ${ward} already exists for this ward` });
+//         }
+//     } 
+//     else if (name === 'Accountant') {
+//         console.log("Inside Accountant");
+//         const existingAccountantWard = await Role.findOne({ ward, name: 'Accountant' });
+//         if (existingAccountantWard) {
+//             return res.status(400).json({ message: `An Accountant for ${ward} already exists for this ward` });
+//         }
+//     } 
+//     else if (name === 'Assistant Municipal Commissioner') {
+//         console.log("Inside Assistant Municipal Commissioner");
+//         const existingAMCWard = await Role.findOne({ ward, name: 'Assistant Municipal Commissioner' });
+//         if (existingAMCWard) {
+//             return res.status(400).json({ message: `An Assistant Municipal Commissioner for ${ward} already exists for this ward` });
+//         }
+//     } 
+//     else if (name === 'Dy.Municipal Commissioner') {
+//         console.log("Inside Dy.Municipal Commissioner");
+//         const existingDMCWard = await Role.findOne({ ward, name: 'Dy.Municipal Commissioner' });
+//         if (existingDMCWard) {
+//             return res.status(400).json({ message: `An Dy.Municipal Commissioner for ${ward} already exists for this ward` });
+//         }
+//     } 
+    
+
+//     else {
+//         const existingWard = await Role.findOne({ ward });
+      
+//         const allowOverride =
+//           requesterRole === 'Admin' ||
+//           requesterRole === 'Executive Engineer' ||
+//           requesterRole === 'Super Admin' ||
+//           (requesterRole === 'Junior Engineer' && requesterWard === 'Head Office');
+      
+//         if (existingWard && !allowOverride) {
+//           return res.status(400).json({ message: `A role for ward ${ward} already exists` });
+//         }
+//       }
+      
+    
+// }
+
+
+//         const existingRole = await Role.findOne({ name, email, ward,officeType,officeName });
+//         if (existingRole) {
+//             return res.status(400).json({
+//                 message: "Role already exists"
+//             });
+//         }
+
+//         let user = await User.findOne({ email });
+
+       
+//         if (user) {
+//             await User.findByIdAndUpdate(
+//                 user._id,
+//                 { role: name,ward:ward,officeType:officeType,officeName:officeName},  
+//                 { new: true, runValidators: true }
+//             );
+//         } else {
+//             return res.status(400).json({
+//                 message: "User not found. Please register the user first."
+//             });
+//         }
+
+       
+//         const newRole = new Role({
+//             userId: user._id,
+//             name, 
+//             email,
+//             ward,
+//             officeType,
+//             officeName 
+//         });
+
+//         const savedRole = await newRole.save();
+
+//         res.status(201).json({
+//             message: "Role added successfully",
+//             Role: savedRole
+//         });
+//     } catch (error) {
+//         console.error('Error adding role', error);
+//         res.status(500).json({
+//             message: 'Internal Server Error'
+//         });
+//     }
+// };
+
+
+
 exports.addRole = async (req, res) => {
-    const { name, email, ward } = req.body; 
+    const { name, email, ward, officeType, officeName } = req.body;
 
-    console.log("name, email, ward",name, email, ward)
+    console.log("Request to add role:", { name, email, ward, officeType, officeName });
+
     const requesterRole = req?.user?.role;
+    const requesterWard = req?.user?.ward;
 
-    if (requesterRole !== 'Super Admin' && requesterRole !== 'Admin' && requesterRole === 'Executive Engineer' &&
-        (requesterRole === 'Junior Engineer' && requesterWard === 'Head Office')) {
-        return res.status(403).json({ message: "You don't have authority to add user" });
+    // फक्त हे चार रोल्स यूजर/रोल add करू शकतात
+    const allowedRoles = ['Super Admin', 'Admin', 'Visitor', 'Administrative Officer'];
+
+    if (!allowedRoles.includes(requesterRole)) {
+        return res.status(403).json({ 
+            message: "You don't have authority to add user/role" 
+        });
     }
 
     try {
-
-        if (name === "Admin") {
-            const adminCount = await User.countDocuments({ role: "Admin" });
-            if (adminCount >= 2) {
-                return res.status(400).json({ message: "A maximum of 2 Admins are allowed." });
-            }
-        }
-        
-
-if (requesterRole !== 'Junior Engineer') {
-    console.log("requesterRole", requesterRole);
-
-    if (name === 'Lipik') {
-        console.log("Inside Lipik");
-        const existingLipikWard = await Role.findOne({ ward, name: 'Lipik' });
-        if (existingLipikWard) {
-            return res.status(400).json({ message: `A Lipik for ${ward} already exists for this ward` });
-        }
-    } 
-    else if (name === 'Accountant') {
-        console.log("Inside Accountant");
-        const existingAccountantWard = await Role.findOne({ ward, name: 'Accountant' });
-        if (existingAccountantWard) {
-            return res.status(400).json({ message: `An Accountant for ${ward} already exists for this ward` });
-        }
-    } 
-    else if (name === 'Assistant Municipal Commissioner') {
-        console.log("Inside Assistant Municipal Commissioner");
-        const existingAMCWard = await Role.findOne({ ward, name: 'Assistant Municipal Commissioner' });
-        if (existingAMCWard) {
-            return res.status(400).json({ message: `An Assistant Municipal Commissioner for ${ward} already exists for this ward` });
-        }
-    } 
-    else if (name === 'Dy.Municipal Commissioner') {
-        console.log("Inside Dy.Municipal Commissioner");
-        const existingDMCWard = await Role.findOne({ ward, name: 'Dy.Municipal Commissioner' });
-        if (existingDMCWard) {
-            return res.status(400).json({ message: `An Dy.Municipal Commissioner for ${ward} already exists for this ward` });
-        }
-    } 
-    // else {
-    //     const existingWard = await Role.findOne({ ward });
-    //     if (existingWard) {
-    //         return res.status(400).json({ message: `A role for ward ${ward} already exists` });
-    //     }
-    // }
-
-    else {
-        const existingWard = await Role.findOne({ ward });
       
-        const allowOverride =
-          requesterRole === 'Admin' ||
-          requesterRole === 'Executive Engineer' ||
-          requesterRole === 'Super Admin' ||
-          (requesterRole === 'Junior Engineer' && requesterWard === 'Head Office');
-      
-        if (existingWard && !allowOverride) {
-          return res.status(400).json({ message: `A role for ward ${ward} already exists` });
-        }
-      }
-      
-    
-}
-
-
-        const existingRole = await Role.findOne({ name, email, ward });
+        // Duplicate role check (same name + email + ward + office)
+        const existingRole = await Role.findOne({ name, email, ward, officeType, officeName });
         if (existingRole) {
-            return res.status(400).json({
-                message: "Role already exists"
+            return res.status(400).json({ 
+                message: "This role already exists with the same details." 
             });
         }
 
+        // User exists का?
         let user = await User.findOne({ email });
-
-       
-        if (user) {
-            await User.findByIdAndUpdate(
-                user._id,
-                { role: name,ward:ward },  
-                { new: true, runValidators: true }
-            );
-        } else {
-            return res.status(400).json({
-                message: "User not found. Please register the user first."
+        if (!user) {
+            return res.status(400).json({ 
+                message: "User not found. Please register the user first." 
             });
         }
 
-       
+        // Update user's role & ward details
+        await User.findByIdAndUpdate(
+            user._id,
+            { role: name, ward, officeType, officeName },
+            { new: true, runValidators: true }
+        );
+
+        // Create new Role entry
         const newRole = new Role({
             userId: user._id,
-            name, 
+            name,
             email,
-            ward
+            ward,
+            officeType,
+            officeName
         });
 
         const savedRole = await newRole.save();
 
-        res.status(201).json({
+        return res.status(201).json({
             message: "Role added successfully",
             Role: savedRole
         });
+
     } catch (error) {
-        console.error('Error adding role', error);
-        res.status(500).json({
-            message: 'Internal Server Error'
+        console.error('Error adding role:', error);
+        return res.status(500).json({ 
+            message: 'Internal Server Error' 
         });
     }
 };
 
+// exports.editRole = async (req, res) => {
+//     const { role_id } = req.params;
+//     const { name, email, ward } = req.body;
+//     const requesterRole = req?.user?.role;
 
+//     if (requesterRole !== 'Super Admin' && requesterRole !== 'Admin') {
+//         return res.status(403).json({ message: "You don't have authority to edit role" });
+//     }
+
+//     if (!name) {
+//         return res.status(400).json({
+//             message: "Role name is required",
+//         });
+//     }
+
+//     try {
+      
+//         const updatedRole = await Role.findByIdAndUpdate(
+//             role_id,
+//             { name, email, ward },
+//             { new: true, runValidators: true }
+//         );
+
+//         if (!updatedRole) {
+//             return res.status(404).json({
+//                 message: "Role not found",
+//             });
+//         }
+
+        
+//         let user = await User.findOne({ email });
+
+//         if (!user) {
+//             return res.status(400).json({
+//                 message: "User not found. Please register the user first.",
+//             });
+//         }
+
+       
+//         await User.findByIdAndUpdate(
+//             user._id,
+//             { role: name, ward },
+//             { new: true, runValidators: true }
+//         );
+
+//         res.status(200).json({
+//             message: "Role updated successfully",
+//             role: updatedRole,
+//         });
+//     } catch (error) {
+//         console.error('Error updating role', error);
+//         res.status(500).json({
+//             message: "Internal Server Error"
+//         });
+//     }
+// };
 
 
 
 exports.editRole = async (req, res) => {
     const { role_id } = req.params;
-    const { name, email, ward } = req.body;
+    const { name, email, ward, officeType, officeName } = req.body;
+
     const requesterRole = req?.user?.role;
 
-    if (requesterRole !== 'Super Admin' && requesterRole !== 'Admin') {
-        return res.status(403).json({ message: "You don't have authority to edit role" });
+    // फक्त हे चार रोल्स role edit करू शकतात (addRole प्रमाणे)
+    const allowedRoles = ['Super Admin', 'Admin', 'Visitor', 'Administrative Officer'];
+
+    if (!allowedRoles.includes(requesterRole)) {
+        return res.status(403).json({ 
+            message: "You don't have authority to edit role" 
+        });
     }
 
     if (!name) {
@@ -146,10 +273,39 @@ exports.editRole = async (req, res) => {
     }
 
     try {
-      
+        // ====== 1. Admin count check (जर Admin role edit करायचा असेल तर) ======
+        // if (name === "Admin") {
+        //     const currentAdminCount = await User.countDocuments({ role: "Admin" });
+        //     const roleBeingEdited = await Role.findById(role_id);
+
+        //     // जर हा role आधीच Admin असेल तर count मध्ये त्याला subtract करायचा
+        //     const isCurrentlyAdmin = roleBeingEdited?.name === "Admin";
+        //     if (!isCurrentlyAdmin && currentAdminCount >= 2) {
+        //         return res.status(400).json({ 
+        //             message: "A maximum of 2 Admins are allowed." 
+        //         });
+        //     }
+        // }
+
+        // ====== 2. Ward-wise uniqueness check (Lipik, Accountant, AMC, Dy.MC) ======
+        // if (['Lipik', 'Accountant', 'Assistant Municipal Commissioner', 'Dy.Municipal Commissioner'].includes(name)) {
+        //     const alreadyExists = await Role.findOne({ 
+        //         ward, 
+        //         name,
+        //         _id: { $ne: role_id } // current role ला exclude करा
+        //     });
+
+        //     if (alreadyExists) {
+        //         return res.status(400).json({ 
+        //             message: `A ${name} for ward ${ward} already exists.` 
+        //         });
+        //     }
+        // }
+
+        // ====== 3. Role update ======
         const updatedRole = await Role.findByIdAndUpdate(
             role_id,
-            { name, email, ward },
+            { name, email, ward, officeType, officeName },
             { new: true, runValidators: true }
         );
 
@@ -159,7 +315,7 @@ exports.editRole = async (req, res) => {
             });
         }
 
-        
+        // ====== 4. User ची role & ward update ======
         let user = await User.findOne({ email });
 
         if (!user) {
@@ -168,28 +324,25 @@ exports.editRole = async (req, res) => {
             });
         }
 
-       
         await User.findByIdAndUpdate(
             user._id,
-            { role: name, ward },
+            { role: name, ward, officeType, officeName },
             { new: true, runValidators: true }
         );
 
-        res.status(200).json({
+        // ====== 5. Success response ======
+        return res.status(200).json({
             message: "Role updated successfully",
             role: updatedRole,
         });
+
     } catch (error) {
-        console.error('Error updating role', error);
-        res.status(500).json({
+        console.error('Error updating role:', error);
+        return res.status(500).json({
             message: "Internal Server Error"
         });
     }
 };
-
-
-
-
 
 exports.deleteRole = async (req, res) => {
     const { role_id } = req.params;
@@ -223,7 +376,7 @@ exports.deleteRole = async (req, res) => {
            
             await User.findByIdAndUpdate(
                 user._id,
-                { role: "" },  
+                { role: "",officeName:"",officeType:""},   
                 { new: true, runValidators: true }
             );
         }
