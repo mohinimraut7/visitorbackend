@@ -47,7 +47,6 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
   app.use('/api',addReportRoutes)
   app.use('/api',imageRoutes)
 
-  
   app.use('/api',addOfficeRoutes)
   app.use('/api',addHeadofficeRoutes)
   app.use('/api',addSubofficeRoutes)
