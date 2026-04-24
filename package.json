@@ -1,7 +1,7 @@
 {
-  "name": "vvmcelectricalbillserver",
+  "name": "thanepolicerural",
   "version": "1.0.0",
-  "description": "bill,electrical",
+  "description": "visitor visits complaint tracking",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
